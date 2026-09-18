@@ -1,0 +1,26 @@
+name: tasks
+version: 0.1.0
+description: Tasks — inbox, due dates, AI extraction from diary
+author: AnotherMe
+entrypoint: plugin
+capabilities:
+  - routes
+  - storage
+  - tools
+  - prompts
+  - ui
+  - events
+dependencies: []
+ui:
+  tab: Tasks
+  icon: check
+  order: 20
+settings:
+  - key: default_view
+    label: "Default view"
+    type: select
+    default: "today"
+    options: ["today", "inbox", "all"]
+    description: "Default tasks view"
+tables:
+  - tasks

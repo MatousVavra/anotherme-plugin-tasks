@@ -1,0 +1,111 @@
+<div class="tasks-layout" x-data="tasksPlugin()" @keydown.escape.window="dialogOpen && closeDialog()">
+    <div class="tasks-toolbar">
+        <input
+            type="text"
+            class="tasks-quickadd"
+            placeholder="Add a task…"
+            x-model="quickAdd"
+            @keydown.enter="quickAddSubmit()"
+        >
+        <div class="tasks-view-switch">
+            <button :class="{ active: view === 'today' }" @click="switchView('today')">Today</button>
+            <button :class="{ active: view === 'inbox' }" @click="switchView('inbox')">Inbox</button>
+            <button :class="{ active: view === 'all' }" @click="switchView('all')">All</button>
+            <button :class="{ active: view === 'done' }" @click="switchView('done')">Done</button>
+        </div>
+    </div>
+
+    <div class="tasks-body">
+        <template x-if="loading">
+            <div class="tasks-skeleton">
+                <div class="tasks-skeleton-row"></div>
+                <div class="tasks-skeleton-row"></div>
+                <div class="tasks-skeleton-row"></div>
+            </div>
+        </template>
+
+        <template x-if="!loading && sections().length === 0">
+            <div class="tasks-empty">
+                <span x-text="view === 'today' ? 'Nothing due today — enjoy!' : 'No tasks here yet'"></span>
+            </div>
+        </template>
+
+        <template x-for="section in sections()" :key="section.key">
+            <div class="tasks-section" :class="{ overdue: section.key === 'overdue' }">
+                <template x-if="!section.collapsible">
+                    <div class="tasks-section-head">
+                        <span x-text="section.label"></span>
+                        <span class="tasks-section-count" x-text="section.tasks.length"></span>
+                    </div>
+                </template>
+                <template x-if="section.collapsible">
+                    <button class="tasks-section-head tasks-section-toggle" @click="doneOpen = !doneOpen">
+                        <span x-text="section.label"></span>
+                        <span class="tasks-section-count" x-text="section.tasks.length"></span>
+                        <span class="tasks-chevron" x-text="doneOpen ? '&#9662;' : '&#9656;'"></span>
+                    </button>
+                </template>
+                <div class="tasks-section-list" x-show="!section.collapsible || doneOpen">
+                    <template x-for="t in section.tasks" :key="t.id">
+                        <div class="task-row" :class="{ done: t.status === 'done' }">
+                            <button
+                                class="task-check"
+                                :class="{ checked: t.status === 'done' }"
+                                @click="toggleTask(t)"
+                                :aria-label="t.status === 'done' ? 'Reopen task' : 'Complete task'"
+                                x-text="t.status === 'done' ? '&#10003;' : ''"
+                            ></button>
+                            <button class="task-main" @click="openEdit(t)">
+                                <span class="task-title" x-text="t.title"></span>
+                                <span class="task-meta">
+                                    <span class="task-notes" x-show="t.notes" x-text="t.notes"></span>
+                                    <span class="task-meta-right">
+                                        <span
+                                            class="task-due"
+                                            :class="{ overdue: isOverdue(t) }"
+                                            x-show="t.due_date"
+                                            x-text="dueLabel(t.due_date)"
+                                        ></span>
+                                        <span class="task-source" x-show="t.source === 'ai'" x-text="'AI'"></span>
+                                    </span>
+                                </span>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <div class="cal-dialog-backdrop" x-cloak x-show="dialogOpen" @click.self="closeDialog()" x-transition.opacity>
+        <div class="cal-dialog" x-show="dialogOpen" x-transition x-effect="if (dialogOpen) $nextTick(() => $refs.titleInput.focus())">
+            <div class="cal-dialog-head">
+                <span x-text="editing ? 'Edit task' : 'New task'"></span>
+                <button class="cal-dialog-close" @click="closeDialog()" aria-label="Close">&#10005;</button>
+            </div>
+            <input class="cal-input cal-input-title" x-ref="titleInput" x-model="formTitle" placeholder="Task title">
+            <label class="cal-field">
+                <span>Due date</span>
+                <input type="date" class="cal-input" x-model="formDue">
+            </label>
+            <textarea class="cal-input cal-input-note" x-model="formNotes" placeholder="Notes (optional)" rows="2"></textarea>
+            <div class="cal-dialog-actions">
+                <button
+                    class="cal-btn cal-btn-danger"
+                    x-show="editing"
+                    :disabled="saving"
+                    @click="deleteTask()"
+                    x-text="deleteMode === 'confirm' ? 'Really delete?' : 'Delete'"
+                ></button>
+                <div class="cal-dialog-spacer"></div>
+                <button class="cal-btn" @click="closeDialog()">Cancel</button>
+                <button
+                    class="cal-btn cal-btn-primary"
+                    :disabled="!formTitle.trim() || saving"
+                    @click="saveTask()"
+                    x-text="saving ? 'Saving…' : 'Save'"
+                ></button>
+            </div>
+        </div>
+    </div>
+</div>
